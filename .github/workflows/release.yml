@@ -74,11 +74,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+      - name: Extract changelog for version
+        run: |
+          version="${{ github.ref_name }}"
+          # Extract section between [version] and next [version] or end of file
+          awk "/^## \[${version#v}\]/,/^## \[/{if (/^## \[${version#v}\]/) p=1; else if (/^## \[/) exit; if (p) print}" CHANGELOG.md > release-notes.md
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
       - uses: softprops/action-gh-release@v2
         with:
+          body_path: release-notes.md
           files: artifacts/**/*
 
   publish-crates:
