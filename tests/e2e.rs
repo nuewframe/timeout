@@ -99,7 +99,7 @@ fn test_arithmetic_command() {
 #[test]
 fn test_verbose_prints_diagnostics() {
     timeout_cmd()
-        .args(&["--verbose", "0.5s", "--", "true"])
+        .args(["--verbose", "0.5s", "--", "true"])
         .assert()
         .success()
         .stderr(predicate::str::contains("Starting command:"))
@@ -141,7 +141,7 @@ fn test_kill_after_zero_logs() {
 #[test]
 fn test_signal_flag_int() {
     timeout_cmd()
-        .args(&[
+        .args([
             "-s",
             "INT",
             "0.1s",
