@@ -1,7 +1,7 @@
 # Copyright (c) 2025 Nuewframe OSS
 
 [package]
-name = "timeout"
+name = "nuewframe-timeout"
 version = "1.0.0"
 edition = "2024"
 description = "A CLI tool to manage timeout duration of a provided command."
