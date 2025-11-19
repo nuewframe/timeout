@@ -331,7 +331,6 @@ async fn run_with_timeout(
 
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
         // CREATE_NEW_PROCESS_GROUP = 0x00000200
         command.creation_flags(0x00000200);
     }
@@ -369,24 +368,19 @@ async fn run_with_timeout(
 
 fn exit_status_to_code(status: ExitStatus) -> i32 {
     if let Some(code) = status.code() {
-        code
-    } else {
-        // killed by signal on unix: return 128 + signal (best-effort)
-        #[cfg(unix)]
-        {
-            use std::os::unix::process::ExitStatusExt;
-            if let Some(sig) = status.signal() {
-                128 + sig
-            } else {
-                1
-            }
-        }
+        return code;
+    }
 
-        #[cfg(not(unix))]
-        {
-            1
+    // killed by signal on unix: return 128 + signal (best-effort)
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt;
+        if let Some(sig) = status.signal() {
+            return 128 + sig;
         }
     }
+
+    1
 }
 
 async fn handle_timeout(
