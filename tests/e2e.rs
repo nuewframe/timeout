@@ -48,7 +48,7 @@ fn test_version() {
 #[test]
 fn test_invalid_duration() {
     let mut cmd = timeout_cmd();
-    cmd.args(&["invalid", "--"]);
+    cmd.args(["invalid", "--"]);
     cmd.args(echo_args("test"));
     cmd.assert()
         .failure()
@@ -58,7 +58,7 @@ fn test_invalid_duration() {
 #[test]
 fn test_arithmetic_duration_invalid() {
     let mut cmd = timeout_cmd();
-    cmd.args(&["3x", "--"]);
+    cmd.args(["3x", "--"]);
     cmd.args(echo_args("done"));
     cmd.assert()
         .failure()
@@ -68,7 +68,7 @@ fn test_arithmetic_duration_invalid() {
 #[test]
 fn test_echo_success() {
     let mut cmd = timeout_cmd();
-    cmd.args(&["1s", "--"]);
+    cmd.args(["1s", "--"]);
     cmd.args(echo_args("hello"));
     cmd.assert()
         .success()
@@ -78,7 +78,7 @@ fn test_echo_success() {
 #[test]
 fn test_timeout_expires() {
     let mut cmd = timeout_cmd();
-    cmd.args(&["0.1s", "--"]);
+    cmd.args(["0.1s", "--"]);
     cmd.args(sleep_args("1"));
     cmd.assert()
         .code(124)
@@ -88,7 +88,7 @@ fn test_timeout_expires() {
 #[test]
 fn test_arithmetic_command() {
     let mut cmd = timeout_cmd();
-    cmd.args(&["1s", "--"]);
+    cmd.args(["1s", "--"]);
     cmd.args(echo_args("$((2*2))"));
     cmd.assert()
         .success()
@@ -110,7 +110,7 @@ fn test_verbose_prints_diagnostics() {
 #[test]
 fn test_verbose_prints_diagnostics() {
     timeout_cmd()
-        .args(&["--verbose", "0.5s", "--", "cmd", "/c", "exit", "0"])
+        .args(["--verbose", "0.5s", "--", "cmd", "/c", "exit", "0"])
         .assert()
         .success()
         .stderr(predicate::str::contains("Starting command:"))
@@ -120,7 +120,7 @@ fn test_verbose_prints_diagnostics() {
 #[test]
 fn test_quiet_suppresses_timeout() {
     let mut cmd = timeout_cmd();
-    cmd.args(&["--quiet", "0.1s", "--"]);
+    cmd.args(["--quiet", "0.1s", "--"]);
     cmd.args(sleep_args("1"));
     cmd.assert()
         .code(124)
@@ -130,7 +130,7 @@ fn test_quiet_suppresses_timeout() {
 #[test]
 fn test_kill_after_zero_logs() {
     let mut cmd = timeout_cmd();
-    cmd.args(&["-k", "0s", "0.1s", "--"]);
+    cmd.args(["-k", "0s", "0.1s", "--"]);
     cmd.args(sleep_args("1"));
     cmd.assert()
         .code(124)
