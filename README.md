@@ -176,7 +176,7 @@ For Docker environments:
 
 ```dockerfile
 FROM rust:latest
-RUN cargo install timeout
+RUN cargo install nuewframe-timeout
 ENTRYPOINT ["timeout"]
 ```
 
@@ -184,7 +184,7 @@ For CI usage (GitHub Actions example):
 
 ```yaml
 - name: Install timeout
-  run: cargo install timeout
+  run: cargo install nuewframe-timeout
 
 - name: Run tests with timeout
   run: timeout 5m -- cargo test
