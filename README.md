@@ -30,21 +30,39 @@ if needed.
 
 ## Installation
 
+### Quick Install (Linux/macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nuewframe/timeout/main/install.sh | bash
+```
+
+This will download the latest release binary and install it to `~/.local/bin`. Make sure this directory is in your `PATH`.
+
+### Quick Install (Windows)
+
+```powershell
+irm https://raw.githubusercontent.com/nuewframe/timeout/main/install.ps1 | iex
+```
+
+This will download the latest release binary and install it to `%LOCALAPPDATA%\Programs\timeout`, automatically adding it to your PATH.
+
 ### From Prebuilt Binaries
 
-Download the latest release for your platform from the [Releases](https://github.com/your-org/tout/releases) page, then
+Download the latest release for your platform from the [Releases](https://github.com/nuewframe/timeout/releases) page, then
 place the binary in your system PATH.
 
 ### Using Cargo
 
 ```bash
-cargo install timeout
+cargo install nuewframe-timeout
 ```
+
+The binary will be installed as `timeout` in your Cargo bin directory.
 
 ### From Source
 
 ```bash
-git clone https://github.com/your-org/timeout.git
+git clone https://github.com/nuewframe/timeout.git
 cd timeout
 cargo build --release
 # Binary will be in target/release/timeout
