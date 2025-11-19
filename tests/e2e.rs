@@ -13,7 +13,11 @@ fn sleep_args(seconds: &str) -> Vec<String> {
 
 #[cfg(windows)]
 fn sleep_args(seconds: &str) -> Vec<String> {
-    vec!["powershell".to_string(), "-Command".to_string(), format!("Start-Sleep {}", seconds)]
+    vec![
+        "powershell".to_string(),
+        "-Command".to_string(),
+        format!("Start-Sleep {}", seconds),
+    ]
 }
 
 #[cfg(unix)]
@@ -23,7 +27,12 @@ fn echo_args(text: &str) -> Vec<String> {
 
 #[cfg(windows)]
 fn echo_args(text: &str) -> Vec<String> {
-    vec!["cmd".to_string(), "/c".to_string(), "echo".to_string(), text.to_string()]
+    vec![
+        "cmd".to_string(),
+        "/c".to_string(),
+        "echo".to_string(),
+        text.to_string(),
+    ]
 }
 
 #[test]
@@ -132,7 +141,15 @@ fn test_kill_after_zero_logs() {
 #[test]
 fn test_signal_flag_int() {
     timeout_cmd()
-        .args(&["-s", "INT", "0.1s", "--", "sh", "-c", "trap 'echo got-int; exit 0' INT; trap 'echo got-term; exit 0' TERM; sleep 5"])
+        .args(&[
+            "-s",
+            "INT",
+            "0.1s",
+            "--",
+            "sh",
+            "-c",
+            "trap 'echo got-int; exit 0' INT; trap 'echo got-term; exit 0' TERM; sleep 5",
+        ])
         .assert()
         .code(124)
         .stdout(predicate::str::contains("got-int"))
