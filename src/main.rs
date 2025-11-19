@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use clap::Parser;
 use humantime::parse_duration;
 #[cfg(unix)]
@@ -142,48 +141,77 @@ fn init_tracing(verbose: bool, quiet: bool) {
         .try_init();
 }
 
-#[async_trait]
-trait ProcessController: Send + Sync {
-    async fn request_graceful(&self, child: &mut Child, signal: &SignalArg) -> io::Result<()>;
-
-    async fn force_terminate(&self, child: &mut Child) -> io::Result<()>;
+enum ProcessController {
+    #[cfg(unix)]
+    Unix,
+    #[cfg(windows)]
+    Windows,
+    #[cfg(not(any(unix, windows)))]
+    Generic,
 }
 
-#[cfg(unix)]
-fn platform_controller() -> Box<dyn ProcessController> {
-    Box::new(UnixProcessController)
-}
-
-#[cfg(windows)]
-fn platform_controller() -> Box<dyn ProcessController> {
-    Box::new(WindowsProcessController)
-}
-
-#[cfg(not(any(unix, windows)))]
-fn platform_controller() -> Box<dyn ProcessController> {
-    Box::new(GenericProcessController)
-}
-
-#[cfg(unix)]
-struct UnixProcessController;
-
-#[cfg(unix)]
-#[async_trait]
-impl ProcessController for UnixProcessController {
+impl ProcessController {
     async fn request_graceful(&self, child: &mut Child, signal: &SignalArg) -> io::Result<()> {
-        let pid = child
-            .id()
-            .ok_or_else(|| io::Error::other("child pid unavailable"))? as i32;
-        let pgid = pid;
-        send_signal(pgid, signal.number, signal.label())
+        match self {
+            #[cfg(unix)]
+            Self::Unix => {
+                let pid = child
+                    .id()
+                    .ok_or_else(|| io::Error::other("child pid unavailable"))?
+                    as i32;
+                let pgid = pid;
+                send_signal(pgid, signal.number, signal.label())
+            }
+            #[cfg(windows)]
+            Self::Windows => {
+                if let Some(pid) = child.id() {
+                    warn!(
+                        pid,
+                        "Graceful termination is not implemented on Windows; waiting for kill-after"
+                    );
+                }
+                Ok(())
+            }
+            #[cfg(not(any(unix, windows)))]
+            Self::Generic => {
+                warn!("Graceful termination not supported on this platform");
+                Ok(())
+            }
+        }
     }
 
     async fn force_terminate(&self, child: &mut Child) -> io::Result<()> {
-        let pid = child
-            .id()
-            .ok_or_else(|| io::Error::other("child pid unavailable"))? as i32;
-        send_signal(pid, libc::SIGKILL, "SIGKILL")
+        match self {
+            #[cfg(unix)]
+            Self::Unix => {
+                let pid = child
+                    .id()
+                    .ok_or_else(|| io::Error::other("child pid unavailable"))?
+                    as i32;
+                send_signal(pid, libc::SIGKILL, "SIGKILL")?;
+                Ok(())
+            }
+            #[cfg(windows)]
+            Self::Windows => child.kill().await,
+            #[cfg(not(any(unix, windows)))]
+            Self::Generic => child.kill().await,
+        }
     }
+}
+
+#[cfg(unix)]
+fn platform_controller() -> ProcessController {
+    ProcessController::Unix
+}
+
+#[cfg(windows)]
+fn platform_controller() -> ProcessController {
+    ProcessController::Windows
+}
+
+#[cfg(not(any(unix, windows)))]
+fn platform_controller() -> ProcessController {
+    ProcessController::Generic
 }
 
 #[cfg(unix)]
@@ -196,43 +224,6 @@ fn send_signal(pgid: i32, signal: i32, label: &str) -> io::Result<()> {
         let err = io::Error::last_os_error();
         warn!(pgid, signal = label, error = %err, "Failed to dispatch signal");
         Err(err)
-    }
-}
-
-#[cfg(windows)]
-struct WindowsProcessController;
-
-#[cfg(windows)]
-#[async_trait]
-impl ProcessController for WindowsProcessController {
-    async fn request_graceful(&self, child: &mut Child, _signal: &SignalArg) -> io::Result<()> {
-        if let Some(pid) = child.id() {
-            warn!(
-                pid,
-                "Graceful termination is not implemented on Windows; waiting for kill-after"
-            );
-        }
-        Ok(())
-    }
-
-    async fn force_terminate(&self, child: &mut Child) -> io::Result<()> {
-        child.kill().await
-    }
-}
-
-#[cfg(not(any(unix, windows)))]
-struct GenericProcessController;
-
-#[cfg(not(any(unix, windows)))]
-#[async_trait]
-impl ProcessController for GenericProcessController {
-    async fn request_graceful(&self, _child: &mut Child, _signal: &SignalArg) -> io::Result<()> {
-        warn!("Graceful termination not supported on this platform");
-        Ok(())
-    }
-
-    async fn force_terminate(&self, child: &mut Child) -> io::Result<()> {
-        child.kill().await
     }
 }
 
@@ -290,7 +281,7 @@ async fn run_cli() -> Result<i32> {
         opt.duration,
         &opt.signal,
         opt.kill_after,
-        controller.as_ref(),
+        &controller,
     )
     .await
 }
@@ -301,7 +292,7 @@ async fn run_with_timeout(
     dur: Duration,
     signal: &SignalArg,
     kill_after: Duration,
-    controller: &(dyn ProcessController + Send + Sync),
+    controller: &ProcessController,
 ) -> Result<i32> {
     let fdur = humantime::format_duration(dur).to_string();
     debug!(command = %cmd, args = ?args, "Starting command:");
@@ -385,7 +376,7 @@ fn exit_status_to_code(status: ExitStatus) -> i32 {
 
 async fn handle_timeout(
     child: &mut Child,
-    controller: &(dyn ProcessController + Send + Sync),
+    controller: &ProcessController,
     kill_after: Duration,
     signal: &SignalArg,
 ) -> Result<()> {
