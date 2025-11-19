@@ -164,6 +164,7 @@ impl ProcessController {
             }
             #[cfg(windows)]
             Self::Windows => {
+                let _ = signal; // Unused on Windows (no signal support)
                 if let Some(pid) = child.id() {
                     warn!(
                         pid,
@@ -174,6 +175,7 @@ impl ProcessController {
             }
             #[cfg(not(any(unix, windows)))]
             Self::Generic => {
+                let _ = signal; // Unused on this platform
                 warn!("Graceful termination not supported on this platform");
                 Ok(())
             }
